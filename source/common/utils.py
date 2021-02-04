@@ -111,3 +111,123 @@ class log_with(object):
             self.logger.info(self.EXIT_MESSAGE.format(func.__name__))   # logging level .info(). Set to .debug() if you want to
             return f_result
         return wrapper
+
+class SQL:
+    """
+
+    This class interacts with the SQL DB , uploads to the DB, creates tables
+    in the DB, and extracts information from the DB.
+
+    This is written based on the Query/Content model, in this model we have
+    special functions for each type of data file that return a customized
+    query and params to be uploaded. This is decorated with the appropriate
+    decorator that establishes the connection to the DB, performs the functions,
+    and closes the connection.
+
+    """
+
+    def __init__(self):
+
+        self.data_id = generate_name()
+
+
+    def decorator_insert(original_function):
+        """
+
+    This function is a decorator for any function that would insert data
+    into the DB and is designed in the Query/Content
+
+        """
+
+        @functools.wraps(original_function)
+        def wrapper_function(*args,**kwargs):
+            query,content = original_function(*args,**kwargs)
+            conn = pg2.connect(database='QuantumPulse', user='postgres', password='password')
+            cur = conn.cursor()
+            executable = cur.mogrify(query,content)
+            cur.execute(executable)
+            conn.commit()
+            conn.close()
+        return wrapper_function
+
+
+
+    @decorator_insert
+    def SQL_data(self,params):
+
+        """
+                This function is used to upload experimental raw data into the SQL DB.
+
+                :param: Takes class params and set of params to be inserted.
+                :type: list
+                :rtype: string,list
+                :return: returns a query string and a list of contents.
+
+        """
+
+        query = 'INSERT INTO raw_data(data_id,raw_data0,raw_data1,time_stamp) VALUES(%s,%s,%s,CURRENT_TIMESTAMP )'
+        content = (self.data_id, params[0], params[1])
+        return (query,content)
+
+
+    @decorator_insert
+    def SQL_log_data(self,params):
+
+        """
+                This function is used to upload log data into the SQL DB.
+
+                :param: Takes class params and set of params to be inserted.
+                :type: list
+                :rtype: string,list
+                :return: returns a query string and a list of contents.
+
+        """
+
+        query = 'INSERT INTO log_data(data_id,sample,count_time,reset_time,avg,threshold,AOM_delay,microwave_delay,type' \
+                ',start,stepsize,steps,PTS,SRS,avgCount,x_arr,time_stamp) ' \
+                'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)'
+        content = (self.data_id,(params[0])[0],(params[0])[1],(params[0])[2],(params[0])[3],
+                   (params[0])[4],(params[0])[5],(params[0])[6],(params[1])['type'],int((params[1])['start']),
+                   int((params[1])['stepsize']),int((params[1])['steps']),(str((params[2])['PTS']) )
+                    ,(str((params[2])['SRS'])),params[3],params[4])
+        return (query,content)
+
+
+    @decorator_insert
+    def SQL_seq_test_data(self,params,data):
+
+        """
+                        This function is used to upload data into the SQL DB from the sequence_test file.
+
+                        :param: Takes class params and set of params to be inserted.
+                        :type: list
+                        :rtype: string,list
+                        :return: returns a query string and a list of contents.
+
+                """
+        query = 'INSERT INTO seq_test_data(data_id,amplitude,pulsewidth,sb_freq,iq_scale_factor,phase,' \
+                'skew_phase,num_pulses,seq,s_wavedata0,s_wavedata1,s_c1markerdata,s_c2markerdata,tt,time_stamp)' \
+                ' VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,' \
+                '%s,CURRENT_TIMESTAMP)'
+        content = (self.data_id,params["amplitude"], params["pulsewidth"], params["SB freq"],
+                   params["IQ scale factor"], params["phase"], params["skew phase"],
+                   params["num pulses"], str(data[0]),data[1], data[2],
+                   data[3],data[4],data[5])
+        return (query,content)
+
+if __name__ == '__main__':
+    parameters = [50000, 300, 2000, 10, 10, 820,10]
+    scan = dict([('type', 'amplitude'), ('start', '0'), ('stepsize', '50'), ('steps', '20')])
+    mw = {'PTS': [True, '2.870', False, '2.840', '0.001', '100', '2.940'], 'SRS':
+        [False, '2.870', False, '2.840','0.001', '100', '2.940']}
+    avgCount = 50
+
+    rawdata0 = [random.randint(1,1000) for item in range(10)]
+    rawdata1 = [random.randint(1, 1000) for item in range(10)]
+    x_arr = [x for x in range(100)]
+
+    rawdata = [rawdata0, rawdata1]
+    logdata = [parameters,scan,mw,avgCount,x_arr]
+
+    SQL().SQL_data(rawdata)
+    SQL().SQL_log_data(logdata)
