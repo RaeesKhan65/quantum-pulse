@@ -30,30 +30,13 @@ import logging
 # instead I use the uic module to directly load GUI, then I dont have to inherit from it and can assign a ui variable
 # inside the appGUI class. Either method is fine.
 thisdir = get_project_root()
-qtdesignerfile = thisdir /'appgui.ui' # this is the .ui file created in QtCreator
+qtdesignerfile = thisdir /'appgui_V2.ui' # this is the .ui file created in QtCreator
 
 # start the logger
 logger = create_logger('qpulseapp')
 
-#     logger = logging.getLogger('qpulseapp')
-#     logger.setLevel(logging.DEBUG)
-#     # create a file handler that logs even debug messages
-#     fh = logging.FileHandler((logfilepath / 'qpulse-app.log').resolve())
-#     fh.setLevel(logging.DEBUG)
-#     # create a console handler with a higher log level
-#     ch = logging.StreamHandler()
-#     ch.setLevel(logging.ERROR)
-#     # create formatter and add it to the handlers
-#     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#     fh.setFormatter(formatter)
-#     ch.setFormatter(formatter)
-#     # add the handlers to the logger
-#     logger.addHandler(fh)
-#     logger.addHandler(ch)
-#     # start the window
-#     logger.info('Starting the main app..')
 
-Ui_Pulseshaper,junk = uic.loadUiType(qtdesignerfile)
+Ui_quantumpulse,junk = uic.loadUiType(qtdesignerfile)
 
 @log_with(logger)
 class appGUI(QtWidgets.QMainWindow):
@@ -76,7 +59,7 @@ class appGUI(QtWidgets.QMainWindow):
         #QtWidgets.QWidget.__init__(self, parent)
         super().__init__(parent)
         # create and setup the UI
-        self.ui = Ui_Pulseshaper()
+        self.ui = Ui_quantumpulse()
         self.ui.setupUi(self)
 
 
@@ -153,6 +136,18 @@ class appGUI(QtWidgets.QMainWindow):
         self.ui.lineEditScanStep.editingFinished.connect(self.updateScanNum)
         self.ui.lineEditScanStop.editingFinished.connect(self.updateScanNum)
         self.ui.lineEditScanNum.editingFinished.connect(self.updateScanStop)
+        # setup default text and slots for changing the sequence samples, count time, and reset time parameters
+        self.ui.lineEditSamples.setPlaceholderText('50000')
+        self.ui.lineEditCountTime.setPlaceholderText('300')
+        self.ui.lineEditResetTime.setPlaceholderText('2000')
+
+        self.ui.lineEditSamples.setValidator(QtGui.QIntValidator(1, 1000000))
+        self.ui.lineEditCountTime.setValidator(QtGui.QIntValidator(1,100000))
+        self.ui.lineEditResetTime.setValidator(QtGui.QIntValidator(1,100000))
+
+        self.ui.lineEditSamples.editingFinished.connect(self.updateSamples)
+        self.ui.lineEditCountTime.editingFinished.connect(self.updateCountTime)
+        self.ui.lineEditResetTime.editingFinished.connect(self.updateResetTime)
 
         # PTS controls
         self.ui.checkBoxUsePTS.stateChanged.connect(self.enablePTS)
@@ -190,7 +185,15 @@ class appGUI(QtWidgets.QMainWindow):
         self.ui.pushButtonSaveData.clicked.connect(self.saveData)
         self.ui.pushButtonStop.clicked.connect(self.stop)
 
+    # this section updates all the line edits related to samples, count time and reset time
+    def updateSamples(self):
+        self.parameters[0] = int(self.ui.lineEditSamples.text())
 
+    def updateCountTime(self):
+        self.parameters[1] = int(self.ui.lineEditCountTime.text())
+
+    def updateResetTime(self):
+        self.parameters[2] = int(self.ui.lineEditResetTime.text())
     
     # this section updates all AWG related parameters from the GUI
     def set_awgvalidator(self):
@@ -393,11 +396,11 @@ class appGUI(QtWidgets.QMainWindow):
             regexp = QtCore.QRegExp("\d{1,6}") # match any sets of digits [0-9] upto 6 allowed i.e. ms long times
         elif selector == 2: # number scan
             regexp = QtCore.QRegExp("[0-9]{,3}") # can at most have 3 digits
-        elif selector == 4: # MW frequency
-            regexp = QtCore.QRegExp("[1-9]{1,4}\\.[0-9]{1,3}") # frequency in MHz, don't allow frequencies below 1
-        elif selector == 5: # sideband frequency
+        elif selector == 3: # MW frequency
+            regexp = QtCore.QRegExp("[0-9]{1,4}\\.[0-9]{1,3}") # frequency in MHz, don't allow frequencies below 1
+        elif selector == 4: # sideband frequency
             regexp = QtCore.QRegExp("[0-9]{,3}\\.[0-9]{1,3}") # we don't allow for scans larger than 100 MHz
-        elif selector == 6: # pulsewidth
+        elif selector == 5: # pulsewidth
             regexp = QtCore.QRegExp("[0-9]{,3}")  # we don't allow for pulsewidths larger than 1000 ns for now
         else:
             regexp = QtCore.QRegExp("[0-9]*")
@@ -726,7 +729,7 @@ class appGUI(QtWidgets.QMainWindow):
 if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
-    window = appGUI(nohardware=False)
+    window = appGUI(nohardware=True)
     #myClass.load_defaults()
     window.show()
     #finish logger
