@@ -14,8 +14,10 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from pathlib import Path
-import functools, logging
-import os, inspect
+import functools, logging, random
+import os, inspect, datetime
+import psycopg2 as pg2
+
 
 def get_project_root() -> Path: # new feature in Python 3.x i.e. annotations
     """Returns project root folder."""
@@ -32,6 +34,13 @@ def get_project_root() -> Path: # new feature in Python 3.x i.e. annotations
 # log = logging.getLogger('custom_log')
 # log.setLevel(logging.DEBUG)
 # log.info('ciao')
+
+def generate_name():
+    today = datetime.datetime.today().strftime("%Y-%m-%d")
+    now = (datetime.datetime.now()).strftime("%H-%M-%S")
+    name = str(today) + '-' + str(now)
+
+    return name
 
 def get_module_name():
     fname = inspect.stack()[-1].filename
