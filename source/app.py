@@ -15,7 +15,7 @@
 
 
 from source.Hardware.Threads import UploadThread,ScanThread,KeepThread
-from source.common.utils import get_project_root,create_logger,log_with
+from source.common.utils import get_project_root,create_logger,log_with,SQL
 #from SeqEditor.Wrapper import GUI_Wrapper as SeqEditorWrapper
 from PyQt5 import QtCore, QtWidgets, QtGui,uic
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -677,6 +677,24 @@ class appGUI(QtWidgets.QMainWindow):
                 f.write(str(each_x) + '\t')
             f.write('\n')
             f.close()
+
+    def saveData1(self):
+        rawdata0 = []
+        rawdata1 = []
+        x_arr = []
+
+        for i in range(self.avgCount * self.scan[2]):
+            rawdata0.append(self.raw_data[i][0])
+            rawdata1.append(self.raw_data[i][1])
+        for each_x in self.x_arr:
+            x_arr.append(each_x)
+
+        rawdata = [rawdata0, rawdata1]
+        logdata = [self.parameters, self.scan, self.mw, self.avgCount, x_arr]
+
+        SQL().SQL_data(rawdata)
+        SQL().SQL_log_data(logdata)
+
 
     def updateDataPlot(self):
         avgData = numpy.average(self.tab_data[:self.avgCount], 0)
