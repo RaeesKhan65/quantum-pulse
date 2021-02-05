@@ -15,7 +15,7 @@
 
 
 from source.Hardware.Threads import UploadThread,ScanThread,KeepThread
-from source.common.utils import get_project_root,create_logger,log_with,SQL
+from source.common.utils import get_project_root,create_logger,log_with,SQL,generate_name
 #from SeqEditor.Wrapper import GUI_Wrapper as SeqEditorWrapper
 from PyQt5 import QtCore, QtWidgets, QtGui,uic
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -682,6 +682,7 @@ class appGUI(QtWidgets.QMainWindow):
             f.close()
 
     def saveData1(self):
+        name = generate_name()
         rawdata0 = []
         rawdata1 = []
         x_arr = []
@@ -695,8 +696,8 @@ class appGUI(QtWidgets.QMainWindow):
         rawdata = [rawdata0, rawdata1]
         logdata = [self.parameters, self.scan, self.mw, self.avgCount, x_arr]
 
-        SQL().SQL_data(rawdata)
-        SQL().SQL_log_data(logdata)
+        SQL(name).SQL_data(rawdata)
+        SQL(name).SQL_log_data(logdata)
 
 
     def updateDataPlot(self):

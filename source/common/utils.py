@@ -135,9 +135,9 @@ class SQL:
 
     """
 
-    def __init__(self):
+    def __init__(self,name):
 
-        self.data_id = generate_name()
+        self.data_id = name
 
 
     def decorator_insert(original_function):
@@ -237,15 +237,15 @@ class SQL:
 
         rawdata = [rawdata0, rawdata1]
         logdata = [parameters, scan, mw, avgCount, x_arr]
+        name = generate_name()
 
-        SQL().SQL_data(rawdata)
-        SQL().SQL_log_data(logdata)
+        SQL(name).SQL_data(rawdata)
+        SQL(name).SQL_log_data(logdata)
 
     def backup():
         folder = str(datetime.datetime.today().strftime("%Y-%m-%d"))
         onedrivepath = "/Users/raekhan/Desktop/Onedrive/OneDrive - University of Pittsburgh/Duttlab/QuantumPulse/"+folder
         filepath = '"'+onedrivepath + "/backup.sql"+'"'
-        print(filepath)
         if not(os.path.exists(onedrivepath)):
             os.makedirs(onedrivepath)
 
