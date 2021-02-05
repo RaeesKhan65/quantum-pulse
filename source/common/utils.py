@@ -14,7 +14,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from pathlib import Path
-import functools, logging, random
+import functools, logging, random, subprocess
 import os, inspect, datetime
 import psycopg2 as pg2
 
@@ -151,7 +151,7 @@ class SQL:
         @functools.wraps(original_function)
         def wrapper_function(*args,**kwargs):
             query,content = original_function(*args,**kwargs)
-            conn = pg2.connect(database='QuantumPulse', user='postgres', password='password')
+            conn = pg2.connect(database='quantumpulse', user='postgres', password='password')
             cur = conn.cursor()
             executable = cur.mogrify(query,content)
             cur.execute(executable)
@@ -224,19 +224,38 @@ class SQL:
                    data[3],data[4],data[5])
         return (query,content)
 
+    def test():
+        parameters = [50000, 300, 2000, 10, 10, 820, 10]
+        scan = dict([('type', 'amplitude'), ('start', '0'), ('stepsize', '50'), ('steps', '20')])
+        mw = {'PTS': [True, '2.870', False, '2.840', '0.001', '100', '2.940'], 'SRS':
+            [False, '2.870', False, '2.840', '0.001', '100', '2.940']}
+        avgCount = 50
+
+        rawdata0 = [random.randint(1, 1000) for item in range(10)]
+        rawdata1 = [random.randint(1, 1000) for item in range(10)]
+        x_arr = [x for x in range(100)]
+
+        rawdata = [rawdata0, rawdata1]
+        logdata = [parameters, scan, mw, avgCount, x_arr]
+
+        SQL().SQL_data(rawdata)
+        SQL().SQL_log_data(logdata)
+
+    def backup():
+        folder = str(datetime.datetime.today().strftime("%Y-%m-%d"))
+        onedrivepath = "/Users/raekhan/Desktop/Onedrive/OneDrive - University of Pittsburgh/Duttlab/QuantumPulse/"+folder
+        filepath = '"'+onedrivepath + "/backup.sql"+'"'
+        print(filepath)
+        if not(os.path.exists(onedrivepath)):
+            os.makedirs(onedrivepath)
+
+        try:
+            subprocess.run('pg_dump -U postgres quantumpulse > ' + filepath,shell = True)
+        except:
+            print("Terminal Error")
+
+
+
 if __name__ == '__main__':
-    parameters = [50000, 300, 2000, 10, 10, 820,10]
-    scan = dict([('type', 'amplitude'), ('start', '0'), ('stepsize', '50'), ('steps', '20')])
-    mw = {'PTS': [True, '2.870', False, '2.840', '0.001', '100', '2.940'], 'SRS':
-        [False, '2.870', False, '2.840','0.001', '100', '2.940']}
-    avgCount = 50
+    SQL.backup()
 
-    rawdata0 = [random.randint(1,1000) for item in range(10)]
-    rawdata1 = [random.randint(1, 1000) for item in range(10)]
-    x_arr = [x for x in range(100)]
-
-    rawdata = [rawdata0, rawdata1]
-    logdata = [parameters,scan,mw,avgCount,x_arr]
-
-    SQL().SQL_data(rawdata)
-    SQL().SQL_log_data(logdata)
