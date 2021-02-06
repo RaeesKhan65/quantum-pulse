@@ -682,7 +682,6 @@ class appGUI(QtWidgets.QMainWindow):
             f.close()
 
     def saveData1(self):
-        name = generate_name()
         rawdata0 = []
         rawdata1 = []
         x_arr = []
@@ -696,8 +695,7 @@ class appGUI(QtWidgets.QMainWindow):
         rawdata = [rawdata0, rawdata1]
         logdata = [self.parameters, self.scan, self.mw, self.avgCount, x_arr]
 
-        SQL(name).SQL_data(rawdata)
-        SQL(name).SQL_log_data(logdata)
+        SQL().SQL_data(rawdata,logdata)
 
 
     def updateDataPlot(self):

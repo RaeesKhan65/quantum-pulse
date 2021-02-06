@@ -121,6 +121,29 @@ class log_with(object):
             return f_result
         return wrapper
 
+class Data:
+  def __init__(self, data):
+    self.key = [row[0] for row in data]
+    self.data_id = [row[1] for row in data]
+    self.rawdata0 = [row[2] for row in data]
+    self.rawdata1 = [row[3] for row in data]
+    self.sample = [row[4] for row in data]
+    self.count_time = [row[5] for row in data]
+    self.reset_time = [row[6] for row in data]
+    self.avg = [row[7] for row in data]
+    self.threshold = [row[8] for row in data]
+    self.aom_delay = [row[9] for row in data]
+    self.mw_delay = [row[10] for row in data]
+    self.type = [row[11] for row in data]
+    self.start = [row[12] for row in data]
+    self.stepsize = [row[13] for row in data]
+    self.steps = [row[14] for row in data]
+    self.PTS = [row[15] for row in data]
+    self.SRS = [row[16] for row in data]
+    self.avgCount = [row[17] for row in data]
+    self.x_arr = [row[18] for row in data]
+    self.time_stamp = [row[19] for row in data]
+
 class SQL:
     """
 
@@ -135,9 +158,9 @@ class SQL:
 
     """
 
-    def __init__(self,name):
+    def __init__(self):
 
-        self.data_id = name
+        self.data_id = generate_name()
 
 
     def decorator_insert(original_function):
@@ -159,28 +182,36 @@ class SQL:
             conn.close()
         return wrapper_function
 
+    def decorator_extract(original_function):
+        """
+
+    This function is a decorator for any function that would extract data
+    into the DB and is designed in the Query/Content
+
+
+
+    |
+        """
+
+        @functools.wraps(original_function)
+        def wrapper_function(*args, **kwargs):
+            a, b = original_function(*args, **kwargs)
+            conn = pg2.connect(database='quantumpulse', user='postgres', password='password')
+            cur = conn.cursor()
+            executable = cur.mogrify(a, b)
+            cur.execute(executable)
+            data = cur.fetchall()
+            conn.close()
+
+            return Data(data)
+
+        return wrapper_function
+
+
 
 
     @decorator_insert
-    def SQL_data(self,params):
-
-        """
-                This function is used to upload experimental raw data into the SQL DB.
-
-                :param: Takes class params and set of params to be inserted.
-                :type: list
-                :rtype: string,list
-                :return: returns a query string and a list of contents.
-
-        """
-
-        query = 'INSERT INTO raw_data(data_id,raw_data0,raw_data1,time_stamp) VALUES(%s,%s,%s,CURRENT_TIMESTAMP )'
-        content = (self.data_id, params[0], params[1])
-        return (query,content)
-
-
-    @decorator_insert
-    def SQL_log_data(self,params):
+    def SQL_data(self,params1,params):
 
         """
                 This function is used to upload log data into the SQL DB.
@@ -192,10 +223,10 @@ class SQL:
 
         """
 
-        query = 'INSERT INTO log_data(data_id,sample,count_time,reset_time,avg,threshold,AOM_delay,microwave_delay,type' \
+        query = 'INSERT INTO data(data_id,raw_data0,raw_data1,sample,count_time,reset_time,avg,threshold,AOM_delay,microwave_delay,type' \
                 ',start,stepsize,steps,PTS,SRS,avgCount,x_arr,time_stamp) ' \
-                'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)'
-        content = (self.data_id,(params[0])[0],(params[0])[1],(params[0])[2],(params[0])[3],
+                'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP)'
+        content = (self.data_id,params1[0],params1[1],(params[0])[0],(params[0])[1],(params[0])[2],(params[0])[3],
                    (params[0])[4],(params[0])[5],(params[0])[6],(params[1])['type'],int((params[1])['start']),
                    int((params[1])['stepsize']),int((params[1])['steps']),(str((params[2])['PTS']) )
                     ,(str((params[2])['SRS'])),params[3],params[4])
@@ -224,6 +255,53 @@ class SQL:
                    data[3],data[4],data[5])
         return (query,content)
 
+    @decorator_extract
+    def SQL_extract_data(data_id=None, key=None, sample=None, count_time=None, reset_time=None,
+                         avg=None, threshold=None, AOM_delay=None, microwave_delay=None,
+                         type=None, start=None, stepsize=None, steps=None, avgCount=None,
+                         PTS=None, SRS=None):
+
+        """
+                This function is used to extract data from the SQL DB.
+
+                :param: Takes inputs of what you want to search.
+                :type: string,list
+                :rtype: list
+                :return: returns data object.
+
+                |
+
+
+        """
+        if (data_id != None):
+            name = data_id + '%'
+        else:
+            name = None
+        content = []
+        input = [name, key, sample, count_time, reset_time, avg, threshold, AOM_delay, microwave_delay, type,
+                 start, stepsize, steps, avgCount, PTS, SRS]
+
+        input_strings = [" data_id LIKE %s", " and key = %s", " and sample = %s", " and count_time = %s",
+                         " and reset_time = %s", " and avg = %s", " and threshold = %s",
+                         " and AOM_delay = %s", " and microwave_delay = %s", " and type = %s",
+                         " and start = %s", " and stepsize = %s", " and steps = %s", " and avgCount = %s",
+                         " and PTS = %s", " and SRS = %s"]
+        query = 'SELECT * FROM data WHERE'
+        val = True
+        for i, j in enumerate(input):
+
+            if (j != None):
+                if (input[0] == None and val == True):
+                    query = query + input_strings[i][4:]
+                    content.append(j)
+                    val = False
+                    continue
+                content.append(j)
+                query = query + input_strings[i]
+
+        return (query, content)
+
+
     def test():
         parameters = [50000, 300, 2000, 10, 10, 820, 10]
         scan = dict([('type', 'amplitude'), ('start', '0'), ('stepsize', '50'), ('steps', '20')])
@@ -233,14 +311,12 @@ class SQL:
 
         rawdata0 = [random.randint(1, 1000) for item in range(10)]
         rawdata1 = [random.randint(1, 1000) for item in range(10)]
-        x_arr = [x for x in range(100)]
+        x_arr = [x for x in range(3)]
 
         rawdata = [rawdata0, rawdata1]
         logdata = [parameters, scan, mw, avgCount, x_arr]
-        name = generate_name()
 
-        SQL(name).SQL_data(rawdata)
-        SQL(name).SQL_log_data(logdata)
+        SQL().SQL_data(rawdata,logdata)
 
     def backup():
         folder = str(datetime.datetime.today().strftime("%Y-%m-%d"))
@@ -257,5 +333,6 @@ class SQL:
 
 
 if __name__ == '__main__':
-    SQL.backup()
+    a = SQL.SQL_extract_data(key = 1)
+    print(a.avgCount)
 
